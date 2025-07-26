@@ -4,6 +4,9 @@
 A mod that aims to remove the game's 60FPS cap during gameplay, adding 21:9/16:10/4:3 support, a toggle to disable motion blur, and TAA tweaks that are useful for upscaling, without the need to modify any extra configuration files.
 
 ## Known Issues:
+
+- All previous issues from [initial release](https://github.com/KingKrouch/DBZK_Fix/issues)
+
 - The game is still running with a Vert- FOV. I still need to find reliable hooks for the LocalPlayer (Required to change the game to Hor+ scaling), and then some hooks for adjusting the FOV during gameplay, as early versions of Unreal Engine 4 don't automatically calculate the correct field of view. The FOV issue doesn't matter as much with 21:9 (I was able to play the game from start to finish), and it's a non-issue with 16:10 or 4:3 (Where the top and bottom expands to a similar viewing space to 16:9).
 
 - Certain UI elements (The Game Over screen), The options menu categories, the level up UI element, and the UI targeting portion are all still using incorrect widget anchors. These need to be fixed to be the center of the screen rather than to the upper left (Which is the default anchoring position in Unreal, this tends to be a problem with games that use hardcoded UI coordinates). Likewise, two montage portions later on in the game with still images are anchored to the left side of the screen.
@@ -13,35 +16,24 @@ A mod that aims to remove the game's 60FPS cap during gameplay, adding 21:9/16:1
 There's probably a few more things that I'm glossing over, but within the source files, it should contain some notes.
 
 ## Setup:
-Extract the contents of the downloaded .ZIP file in the releases section into the **"\AT\Binaries\Win64\"** directory of where the game is installed.
+If using the HD Update:
+- Extract the contents of the downloaded .ZIP file in the releases section into the **"\AT\dlc\Remaster\AT\Binaries\Win64\"** directory of where the game is installed.
+
+If using base version: (I have not tested this version with the non-HD version...might be better to use the previous version [here](https://github.com/KingKrouch/DBZK_Fix/releases/tag/Alpha_Build_01))
+- Extract the contents of the downloaded .ZIP file in the releases section into the **"\AT\Binaries\Win64\"** directory of where the game is installed.
 
 *Note: If you don't have any other Steam library locations set up, this will likely be **"C:\Program Files (x86)\Steam\SteamApps\Common\DRAGON BALL Z KAKAROT"**.*
 
 For Proton and Steam Deck Users: No further setup is necessary.
 
-## System Requirements:
-* A *Legitimate* fully updated copy of the game from Steam *(Due to the difference in memory offsets that can result with cracked/pirated versions, the fact that these versions are likely outdated builds, and the fact that I vehemently discourage piracy when there are convenient and accessible options available to support the developers, **I refuse** to provide technical support for these versions. That includes anyone without a mouse cursor icon next to their name on the Steam Discussion Boards).*<br />
-[***The game is available for purchase on Steam.***](https://store.steampowered.com/app/851850)
-
-* Windows 10, Windows 11, or Proton Experimental (On Linux and the Steam Deck). **64-Bit operating system is required.**
-
 ## Download (For novices):
-[Latest version can be downloaded here.](https://github.com/KingKrouch/DBZK_Fix/releases).
-
-Download includes a Proton friendly version of [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS).
-
-## Special Thanks:
-- [Nic](https://github.com/NicNamed) for helping out figure out how to coax UE4SS to work with the game, and for helping to find hooks for functions. This new release wouldn't come out remotely as swiftly (understatement of the century) if not for them. Their assistance also helped me to push towards playing the game to it's finish (Minus the DLC content which I have to get to).
-
-- The kind folks over at the UE4SS Discord, alongside the documentation for UE4SS. Links to those will be in their GitHub repository linked here.
-
-- Everyone who was kind enough to donate, even if it took me a bit to actually approach updating this mod. Especially challenging with the constant barrage of updates from Bandai Namco after the game's release changing memory offsets.
+[Latest version can be downloaded here.](https://github.com/NicNamed/DBZK_Fix/releases).
 
 ## Support The Project:
 
-☕ If you've enjoyed or gotten usage from my work *(keep in mind, I do a majority of this completely for free on my spare time with no donations or compensation)*, please consider supporting my Ko-Fi below:
-<br><br>[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kingkrouch)
-<br>Also, if you can, please spare a bit to support [Nic](https://github.com/NicNamed)'s [Ko-Fi](https://ko-fi.com/nic_named). Reason I can't show a similar embed, is because people might get confused over there being two big red "Support Me on Ko-Fi buttons".
+Nic_Named's: [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nic_named)
+<br>
+KingKrouch's: [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kingkrouch)
 
 ## Licensing:
 
