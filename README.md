@@ -29,6 +29,11 @@ For Proton and Steam Deck Users: No further setup is necessary.
 ## Download (For novices):
 [Latest version can be downloaded here.](https://github.com/NicNamed/DBZK_Fix/releases).
 
+## Special Thanks:
+- [KingKrouch](https://github.com/KingKrouch) for the work on the initial release! Wouldn't have known where to start without their help :D
+
+- [Special Week (real)](https://steamcommunity.com/sharedfiles/filedetails/?id=3527702022) for figuring out updating UE4SS fixed issues after the HD Update!
+
 ## Support The Project:
 
 Nic_Named's: [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nic_named)
