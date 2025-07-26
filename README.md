@@ -17,7 +17,7 @@ There's probably a few more things that I'm glossing over, but within the source
 
 ## Setup:
 If using the HD Update:
-- Extract the contents of the downloaded .ZIP file in the releases section into the **"\AT\dlc\Remaster\AT\Binaries\Win64\"** directory of where the game is installed.
+- Extract the contents of the downloaded .ZIP file in the releases section into the **"\dlc\Remaster\AT\Binaries\Win64\"** directory of where the game is installed.
 
 If using base version: (I have not tested this version with the non-HD version...might be better to use the previous version [here](https://github.com/KingKrouch/DBZK_Fix/releases/tag/Alpha_Build_01))
 - Extract the contents of the downloaded .ZIP file in the releases section into the **"\AT\Binaries\Win64\"** directory of where the game is installed.
