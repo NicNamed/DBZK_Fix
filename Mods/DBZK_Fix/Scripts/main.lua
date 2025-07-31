@@ -1,33 +1,57 @@
+---@diagnostic disable: undefined-global
 local UEHelpers = require("UEHelpers")
 local inifile = require("inifile");
 
 local GetKismetSystemLibrary = UEHelpers.GetKismetSystemLibrary
 
-local ksl   = GetKismetSystemLibrary()
+local ksl = GetKismetSystemLibrary()
 
-local engine = FindFirstOf("Engine")
-
-local canExecute = true
 local init = false
 
---- @type bool
+--- @type boolean
 local showFPSStats = false
 
---- @type bool
+--- @type boolean
 local useTemporalUpscaling = false
 
---- @type bool
+--- @type boolean
 -- By default, the game uses motion blur, so let's keep that on.
 local useMotionBlur = true
 
---- @type int
+--- @type integer
 local fpsCap = 0
 
---- @type int
+--- @type boolean
+local useFixedFrameRate = false
+
+--- @type integer
 local vsyncInterval = 1
 
---- @type float
+--- @type number
 local ogAspectRatio = 16 / 9
+
+--- @type boolean
+local verbose = false
+
+-- Normal logs
+--- @param line string
+function LogPrint(line)
+	print('[DBZK_Fix] ' .. line .. '\n')
+end
+
+-- Errors logs
+--- @param line string
+function LogError(line)
+	print('[DBZK_Fix] ERROR: ' .. line .. '\n')
+end
+
+-- Only show these if debugging
+--- @param line string
+function LogDebug(line)
+	if verbose then
+		print('[DBZK_Fix] DEBUG: ' .. line .. '\n')
+    end
+end
 
 -- This is just a bit from a Persona 3 tweaks mod.
 --- @param cmd string
@@ -45,12 +69,20 @@ function Fix()
         local CheatManager = PlayerController.CheatManager
 
         if CheatManager:IsValid() then
-            CheatManager:ATFrameRateVariable(fpsCap)
+            -- call with pcall so it will handle any null pointer calls...although it was never doing this before...
+            pcall( function()
+                LogPrint(CheatManager)
+                if useFixedFrameRate then
+                    CheatManager:ATFrameRateFixed(fpsCap)
+                else
+                    CheatManager:ATFrameRateVariable(fpsCap)
+                end
+            end)
         else
-            logError("Invalid CheatManager!\n")
+            LogError("Invalid CheatManager!")
         end
     else
-        logError("Invalid Player Controller!\n")
+        LogError("Invalid Player Controller!")
     end
 
     ExecCmd("rhi.SyncInterval " ..vsyncInterval)
@@ -85,6 +117,7 @@ function Init()
     useMotionBlur        = config["Graphics"]["MotionBlur"]
     vsyncInterval        = config["Framerate"]["VSyncInterval"]
     local fpsCapCheck    = config["Framerate"]["MaxFPS"]
+    useFixedFrameRate    = config["Framerate"]["UseFixed"]
     if fpsCapCheck == 0 then -- the reason for this is because apparently there's side effects when setting it to 0 rather than a high number.
         fpsCap           = 9999
     else
@@ -93,51 +126,47 @@ function Init()
     
     init = true
 
-    print("[DBZK_Fix] Initializing...\n")
+    LogPrint("Initializing...")
 end
 
 Init()
 
-RegisterHook("/Script/Engine.PlayerController:ClientRestart", function()
+RegisterHook("/Script/AT.ATSaveManager:Load", function()
+    print("[DBZK_Fix] Loading...")
     Fix()
 end)
 
---- @param hfov float
---- @param aspect_ratio float
-function hfov_to_vfov(hfov, aspect_ratio) -- Convert from Vert- to Hor+
+RegisterHook("/Script/AT.ATSaveManager:Save", function()
+    print("[DBZK_Fix] Saving...")
+    Fix()
+end)
+
+--- @param hfov number
+--- @param aspect_ratio number
+function HFOV_to_VFOV(hfov, aspect_ratio) -- Convert from Vert- to Hor+
     local hfov_radians = math.rad(hfov / 2)  -- Convert HFOV to radians and divide by 2
     local vfov_radians = 2 * math.atan(math.tan(hfov_radians) / aspect_ratio)
     local vfov_degrees = math.deg(vfov_radians)  -- Convert VFOV back to degrees
     return vfov_degrees
 end
 
---- @param vfov float
---- @param aspect_ratio float
-function vfov_to_hfov(vfov, aspect_ratio) -- Convert from Hor+ to Vert-
+--- @param vfov number
+--- @param aspect_ratio number
+function VFOV_TO_HFOV(vfov, aspect_ratio) -- Convert from Hor+ to Vert-
     local vfov_radians = math.rad(vfov / 2)  -- Convert VFOV to radians and divide by 2
     local hfov_radians = 2 * math.atan(aspect_ratio * math.tan(vfov_radians))
     local hfov_degrees = math.deg(hfov_radians)  -- Convert HFOV back to degrees
     return hfov_degrees
 end
 
-RegisterHook("/Script/AT.ATSaveManager:Load", function()
-    print("[DBZK_Fix] Loading...\n")
-    Fix()
-end)
-
-RegisterHook("/Script/AT.ATSaveManager:Save", function()
-    print("[DBZK_Fix] Saving...\n")
-    Fix()
-end)
-
 -- NOTE: Figure out why this isn't working. Almost as if it's being rewritten.
 NotifyOnNewObject("/Script/Engine.LocalPlayer",
 function(CreatedObject)
-    print("[DBZK_Fix] Found the LocalPlayer.\n")
+    --print("[DBZK_Fix] Found the LocalPlayer.\n")
     if CreatedObject:IsValid() then
         -- Because the AspectRatioAxisConstraint is an Enum, we use 0 to get AspectRatio_MaintainYFOV.
         CreatedObject.AspectRatioAxisConstraint = 0
-        print("[DBZK_Fix] Patched LocalPlayer's AspectRatioAxisConstraint.\n")
+        LogDebug("[DBZK_Fix] Patched LocalPlayer's AspectRatioAxisConstraint.\n")
     end
 end)
 
@@ -146,36 +175,36 @@ end)
 RegisterHook("/Script/Engine.CameraComponent:SetFieldOfView", function(InFieldOfView)
     if InFieldOfView:IsValid() then
         local fovOld = InFieldOfView;
-        InFieldOfView = hfov_to_vfov(fovOld, ogAspectRatio)
-        print("[DBZK_Fix] New FOV: ", InFieldOfView, ". Old FOV: ", fovOld, ".")
+        InFieldOfView = HFOV_to_VFOV(fovOld, ogAspectRatio)
+        LogDebug("[DBZK_Fix] New FOV: ", InFieldOfView, ". Old FOV: ", fovOld, ".")
     end
 end)
 
 -- NOTE: Need to figure out why realtime cutscenes don't display in 21:9.
 NotifyOnNewObject("/Script/Engine.CameraComponent", function(CreatedObject)
     if CreatedObject:IsValid() then
-        print("[DBZK_Fix] Found a Camera Component.\n")
+        --print("[DBZK_Fix] Found a Camera Component.\n")
         CreatedObject.bConstrainAspectRatio = false
     end
 end)
 
 NotifyOnNewObject("/Game/Maps/Boot/Title/Title.Title:PersistentLevel.CameraActor_1.CameraComponent", function (CreatedObject)
     if CreatedObject:IsValid() then
-        print("[DBZK_Fix] Found the title screen Camera Component.\n")
+        LogDebug("[DBZK_Fix] Found the title screen Camera Component.\n")
         CreatedObject.bConstrainAspectRatio = false
     end
 end)
 
 NotifyOnNewObject("/Game/Maps/Boot/Title/Title.Title:PersistentLevel.CameraActor_0.CameraComponent", function (CreatedObject)
     if CreatedObject:IsValid() then
-        print("[DBZK_Fix] Found the title screen Camera Component.\n")
+        LogDebug("[DBZK_Fix] Found the title screen Camera Component.\n")
         CreatedObject.bConstrainAspectRatio = false
     end
 end)
 
 NotifyOnNewObject("/Script/AT.AT_UITPSLockOnMark", function(CreatedObject)
     if CreatedObject:IsValid() then
-        print("Intercepted LockOnMark Widget.")
+        LogDebug("Intercepted LockOnMark Widget.")
         --CreatedObject.WL_AllBattleLock00.
     end
 end)
@@ -184,23 +213,27 @@ end)
 -- (Title Screen, In game, etc...)
 NotifyOnNewObject("/Script/AT.ATCheatManager",
 function(CreatedObject)
-    --logPrint("CheatManager created!\n")
+    --LogPrint("CheatManager created!\n")
     if CreatedObject:IsValid() then
-        CreatedObject:ATFrameRateVariable(fpsCap)
+        if useFixedFrameRate then
+            CreatedObject:ATFrameRateFixed(fpsCap)
+        else
+            CreatedObject:ATFrameRateVariable(fpsCap)
+        end
     else
-        logError("Invalid CheatManager created!\n")
+        LogError("Invalid CheatManager created!\n")
     end
 end)
 
 -- Uncaps the UI during pre-rendered cutscenes
 NotifyOnNewObject("/Script/ATExt.ATSceneEvent", function(CreatedObject)
-    print("ATSceneEvent created!\n")
+    LogDebug("ATSceneEvent created!\n")
     Fix()
 end)
 
 -- Uncaps the game during any in-game cutscenes
 NotifyOnNewObject("/Script/ATExt.ATSceneDemoBase", function(CreatedObject)
-    print("ATSceneDemoBase created!\n")
+    LogDebug("ATSceneDemoBase created!\n")
     Fix()
 end)
 
