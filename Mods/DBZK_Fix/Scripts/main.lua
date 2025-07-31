@@ -1,4 +1,8 @@
 ---@diagnostic disable: undefined-global
+
+--- @type string
+local version = '0.3'
+
 local UEHelpers = require("UEHelpers")
 local inifile = require("inifile");
 
@@ -126,18 +130,18 @@ function Init()
     
     init = true
 
-    LogPrint("Initializing...")
+    print("Initializing " .. 'v' .. version .. " of DBZK_Fix!\n")
 end
 
 Init()
 
 RegisterHook("/Script/AT.ATSaveManager:Load", function()
-    print("[DBZK_Fix] Loading...")
+    LogPrint("Loading...")
     Fix()
 end)
 
 RegisterHook("/Script/AT.ATSaveManager:Save", function()
-    print("[DBZK_Fix] Saving...")
+    LogPrint("Saving...")
     Fix()
 end)
 
