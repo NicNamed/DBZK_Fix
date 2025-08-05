@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-global
 
 --- @type string
-local version = '0.3'
+local version = '0.4'
 
 local UEHelpers = require("UEHelpers")
 local inifile = require("inifile");
