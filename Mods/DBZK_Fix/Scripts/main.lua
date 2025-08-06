@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-global
 
 --- @type string
-local version = '0.3'
+local version = '0.4'
 
 local UEHelpers = require("UEHelpers")
 local inifile = require("inifile");
@@ -37,6 +37,10 @@ local ogAspectRatio = 16 / 9
 --- @type boolean
 local verbose = false
 
+--- @type UObject
+--- current global CheatManager
+local currentCheatManager = nil
+
 -- Normal logs
 --- @param line string
 function LogPrint(line)
@@ -57,6 +61,23 @@ function LogDebug(line)
     end
 end
 
+
+---Uncaps FPS with currentCheatManager
+---@param fps integer
+function UncapFPS(fps)
+    if currentCheatManager ~= nil then
+        if currentCheatManager:IsValid() then
+            if useFixedFrameRate then
+                currentCheatManager:ATFrameRateFixed(fpsCap)
+            else
+                currentCheatManager:ATFrameRateVariable(fpsCap)
+            end
+        end
+    else
+        LogError('no current cheat manager!')
+    end
+end
+
 -- This is just a bit from a Persona 3 tweaks mod.
 --- @param cmd string
 function ExecCmd(cmd)
@@ -67,27 +88,21 @@ function ExecCmd(cmd)
 end
 
 function Fix()
-    local PlayerController = UEHelpers.GetPlayerController()
 
-    if PlayerController:IsValid() then
-        local CheatManager = PlayerController.CheatManager
-
-        if CheatManager:IsValid() then
-            -- call with pcall so it will handle any null pointer calls...although it was never doing this before...
-            pcall( function()
-                LogPrint(CheatManager)
-                if useFixedFrameRate then
-                    CheatManager:ATFrameRateFixed(fpsCap)
-                else
-                    CheatManager:ATFrameRateVariable(fpsCap)
-                end
-            end)
-        else
-            LogError("Invalid CheatManager!")
-        end
+    if currentCheatManager ~= nil then
+        UncapFPS(fpsCap)
     else
-        LogError("Invalid Player Controller!")
+        LogError('No currentCheatManager!')
+        -- local newCheatManager = StaticFindObject('/Script/AT.Default__ATCheatManager')
+        -- if newCheatManager ~= nil then
+        --     currentCheatManager = newCheatManager
+        --     UncapFPS(fpsCap)
+        -- else
+        --     LogError("Can't find new ATCheatManager...")
+        -- end
     end
+
+    -- ExecCmd('t.MaxFPS ' .. fpsCap)
 
     ExecCmd("rhi.SyncInterval " ..vsyncInterval)
 
@@ -101,13 +116,13 @@ function Fix()
         ExecCmd("r.MotionBlurQuality 0")
     end
 
-    -- For now this is going to be commented until we know that the more advanced hook works: ExecCmd("ATFrameRateVariable " ..fpsCap)
     if showFPSStats then
-        ExecCmd("stat unit")
-        ExecCmd("stat fps")
+        ExecCmd("stat detailed")
     end
 end
 
+--- read the ini file
+--- only run once
 function Init()
     if init then
         return
@@ -133,17 +148,22 @@ function Init()
     print("Initializing " .. 'v' .. version .. " of DBZK_Fix!\n")
 end
 
+-- START OF EXECUTION --
+
 Init()
 
-RegisterHook("/Script/AT.ATSaveManager:Load", function()
-    LogPrint("Loading...")
-    Fix()
-end)
+Fix()
 
-RegisterHook("/Script/AT.ATSaveManager:Save", function()
-    LogPrint("Saving...")
-    Fix()
-end)
+-- Grab the GameUserSettings and set the FrameRateLimit to our cap
+-- local GameSettingsInstances = FindAllOf("GameUserSettings")
+-- if not GameSettingsInstances then
+--     print("No instances of 'GameUserSettings' were found\n")
+-- else
+--     for Index, GameSettingsInstance in pairs(GameSettingsInstances) do
+--         print(string.format("[%d] %s\n", Index, GameSettingsInstance:GetFullName()))
+--         GameSettingsInstance.FrameRateLimit = fpsCap * 1.0
+--     end
+-- end
 
 --- @param hfov number
 --- @param aspect_ratio number
@@ -174,9 +194,9 @@ function(CreatedObject)
     end
 end)
 
-
 -- TODO: Figure out why this doesn't work. Ideally we should be hooking the function modifying the FOV during gameplay, run our calculations, and then return the proper FOV. We only really have to do this because old UE4 versions doesn't convert the FOV properly.
-RegisterHook("/Script/Engine.CameraComponent:SetFieldOfView", function(InFieldOfView)
+RegisterHook("/Script/Engine.CameraComponent:SetFieldOfView",
+function(InFieldOfView)
     if InFieldOfView:IsValid() then
         local fovOld = InFieldOfView;
         InFieldOfView = HFOV_to_VFOV(fovOld, ogAspectRatio)
@@ -185,31 +205,27 @@ RegisterHook("/Script/Engine.CameraComponent:SetFieldOfView", function(InFieldOf
 end)
 
 -- NOTE: Need to figure out why realtime cutscenes don't display in 21:9.
-NotifyOnNewObject("/Script/Engine.CameraComponent", function(CreatedObject)
+NotifyOnNewObject("/Script/Engine.CameraComponent",
+function(CreatedObject)
     if CreatedObject:IsValid() then
         --print("[DBZK_Fix] Found a Camera Component.\n")
         CreatedObject.bConstrainAspectRatio = false
     end
 end)
 
-NotifyOnNewObject("/Game/Maps/Boot/Title/Title.Title:PersistentLevel.CameraActor_1.CameraComponent", function (CreatedObject)
+NotifyOnNewObject("/Game/Maps/Boot/Title/Title.Title:PersistentLevel.CameraActor_1.CameraComponent",
+function (CreatedObject)
     if CreatedObject:IsValid() then
         LogDebug("[DBZK_Fix] Found the title screen Camera Component.\n")
         CreatedObject.bConstrainAspectRatio = false
     end
 end)
 
-NotifyOnNewObject("/Game/Maps/Boot/Title/Title.Title:PersistentLevel.CameraActor_0.CameraComponent", function (CreatedObject)
+NotifyOnNewObject("/Game/Maps/Boot/Title/Title.Title:PersistentLevel.CameraActor_0.CameraComponent",
+function (CreatedObject)
     if CreatedObject:IsValid() then
         LogDebug("[DBZK_Fix] Found the title screen Camera Component.\n")
         CreatedObject.bConstrainAspectRatio = false
-    end
-end)
-
-NotifyOnNewObject("/Script/AT.AT_UITPSLockOnMark", function(CreatedObject)
-    if CreatedObject:IsValid() then
-        LogDebug("Intercepted LockOnMark Widget.")
-        --CreatedObject.WL_AllBattleLock00.
     end
 end)
 
@@ -217,26 +233,26 @@ end)
 -- (Title Screen, In game, etc...)
 NotifyOnNewObject("/Script/AT.ATCheatManager",
 function(CreatedObject)
-    --LogPrint("CheatManager created!\n")
+    LogDebug("CheatManager created!\n")
+
     if CreatedObject:IsValid() then
-        if useFixedFrameRate then
-            CreatedObject:ATFrameRateFixed(fpsCap)
-        else
-            CreatedObject:ATFrameRateVariable(fpsCap)
-        end
+        currentCheatManager = CreatedObject
+        UncapFPS(fpsCap)
     else
         LogError("Invalid CheatManager created!\n")
     end
 end)
 
 -- Uncaps the UI during pre-rendered cutscenes
-NotifyOnNewObject("/Script/ATExt.ATSceneEvent", function(CreatedObject)
+NotifyOnNewObject("/Script/ATExt.ATSceneEvent",
+function(CreatedObject)
     LogDebug("ATSceneEvent created!\n")
     Fix()
 end)
 
 -- Uncaps the game during any in-game cutscenes
-NotifyOnNewObject("/Script/ATExt.ATSceneDemoBase", function(CreatedObject)
+NotifyOnNewObject("/Script/ATExt.ATSceneDemoBase",
+function(CreatedObject)
     LogDebug("ATSceneDemoBase created!\n")
     Fix()
 end)
